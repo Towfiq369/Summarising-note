@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SUMMARISING NOTE</title>
+    <style>
+        /* CSS */
+        :root {
+            --light-bg: #f4f4f9;
+            --light-text: #333;
+            --light-card: #fff;
+            --dark-bg: #121212;
+            --dark-text: #e0e0e0;
+            --dark-card: #1e1e1e;
+            --primary-color: #007bff;
+            --success-color: #28a745;
+            --border-color: #ccc;
+            --dark-border: #333;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+            background-color: var(--light-bg);
+            color: var(--light-text);
+        }
+
+        .dark-mode {
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: var(--light-card);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+
+        .dark-mode .container {
+            background-color: var(--dark-card);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-sizing: border-box;
+            resize: vertical;
+            min-height: 150px;
+            font-size: 16px;
+            line-height: 1.6;
+            background-color: var(--light-card);
+            color: var(--light-text);
+            transition: border-color 0.3s;
+        }
+
+        .dark-mode textarea {
+            background-color: var(--dark-card);
+            color: var(--dark-text);
+            border-color: var(--dark-border);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s, opacity 0.3s;
+        }
+
+        #summarizeBtn {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        #summarizeBtn:hover {
+            background-color: #0056b3;
+        }
+
+        #copyBtn, #downloadPdfBtn {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        #copyBtn:hover, #downloadPdfBtn:hover {
+            background-color: #1e7e34;
+        }
+
+        #toggleDarkLight {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        #toggleDarkLight:hover {
+            background-color: #5a6268;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        #summaryOutput {
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            min-height: 150px;
+            background-color: var(--light-bg);
+            white-space: pre-wrap;
+            font-size: 16px;
+            line-height: 1.6;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .dark-mode #summaryOutput {
+            background-color: var(--dark-card);
+            border-color: var(--dark-border);
+        }
+
+        .status-message {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #ffc107;
+            color: #333;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Summarising note with TOWFIQ</h1>
+
+        <p>এখানে আপনার নোট, টেক্সট, বা ইউটিউব/আর্টিকেলের লিঙ্ক লিখুন:</p>
+        <textarea id="textInput" placeholder="ইনপুট টেক্সট বা লিঙ্ক..."></textarea>
+
+        <div class="button-group">
+            <button id="summarizeBtn">Summarize (সারাংশ করুন)</button>
+            <button id="copyBtn" disabled>Copy Summary (সারাংশ কপি করুন)</button>
+            <button id="downloadPdfBtn" disabled>Download PDF (পিডিএফ ডাউনলোড)</button>
+            <button id="toggleDarkLight">Toggle Dark/Light</button>
+        </div>
+
+        <div id="statusMessage" class="status-message"></div>
+
+        <p>সারাংশ এখানে প্রদর্শিত হবে:</p>
+        <div id="summaryOutput"></div>
+        
+        <p style="margin-top: 20px;">সংরক্ষিত নোট: (এই সংস্করণে সংরক্ষণ কার্যকারিতা যোগ করা হয়নি, তবে আপনি চাইলে লোকাল স্টোরেজ ব্যবহার করে এটি যোগ করতে পারেন)</p>
+        <div style="min-height: 50px; padding: 10px; border: 1px dashed #ccc; border-radius: 4px;"></div>
+
+    </div>
+
+    <script>
+        // JavaScript
+        const API_KEY = "AIzaSyDI7KMTlTAB71rXs6jl3KizBZ5mDotjYQ8"; // !!! এখানে আপনার API কী দিন !!!
+        const MODEL_NAME = "gemini-2.5-flash"; // জেমিনি মডেল
+
+        const textInput = document.getElementById('textInput');
+        const summarizeBtn = document.getElementById('summarizeBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+        const toggleDarkLightBtn = document.getElementById('toggleDarkLight');
+        const summaryOutput = document.getElementById('summaryOutput');
+        const statusMessage = document.getElementById('statusMessage');
+        const body = document.body;
+
+        // --- ফাংশন ---
+
+        // ডার্ক/লাইট মোড টগল
+        function toggleDarkMode() {
+            body.classList.toggle('dark-mode');
+            const isDarkMode = body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDarkMode ? 'enabled' : 'disabled');
+        }
+
+        // শুরুতে মোড সেট করুন
+        function initializeMode() {
+            if (localStorage.getItem('darkMode') === 'enabled') {
+                body.classList.add('dark-mode');
+            }
+        }
+        initializeMode();
+
+
+        /**
+         * সারাংশ করার জন্য জেমিনি এপিআই কল করে।
+         * @param {string} text - ব্যবহারকারীর ইনপুট টেক্সট বা লিঙ্ক।
+         */
+        async function getSummary(text) {
+            if (!text.trim()) {
+                showMessage("অনুগ্রহ করে কিছু টেক্সট বা লিঙ্ক প্রদান করুন।", 'error');
+                return;
+            }
+            if (API_KEY === "YOUR_GEMINI_API_KEY_HERE" || !API_KEY) {
+                showMessage("API কী সেট করা হয়নি। অনুগ্রহ করে কোডে আপনার Gemini API কী দিন।", 'error');
+                return;
+            }
+
+            // যদি এটি একটি লিঙ্ক হয়, তবে সরাসরি টেক্সট হিসাবে ট্রিট করুন (বাস্তবে লিঙ্ক হ্যান্ডলিং এর জন্য ব্যাকএন্ড দরকার)
+            let prompt = `নিম্নলিখিত টেক্সট/আর্টিকেল/ভিডিওর সারাংশ বাংলায় তৈরি করুন। এটি যেকোনো ভাষা বা লিঙ্ক হতে পারে। এটি সম্পূর্ণরূপে বাংলায় সংক্ষিপ্ত করুন: ${text}`;
+            
+            // ইউটিউব/আর্টিকেল লিঙ্ক:
+            // দ্রষ্টব্য: জেমিনি সরাসরি একটি ইউটিউব লিঙ্ক থেকে সারাংশ করতে পারে না, তবে এটি ওয়েব পেজ/আর্টিকেল লিঙ্ক বা ভিডিওর ট্রান্সক্রিপ্ট টেক্সট পেলে সারাংশ করতে পারে। যেহেতু আপনি একটি সিঙ্গেল-ফাইল টুল চেয়েছেন, লিঙ্ক থেকে কন্টেন্ট আনার ফাংশনটি ব্রাউজারের CORS নীতিমালার কারণে কাজ করবে না। তাই, আমরা প্রম্পটে লিঙ্কটি অন্তর্ভুক্ত করে জেমিনিকে তার ওয়েব-সার্চ ক্ষমতা ব্যবহার করে উত্তর দিতে বলছি।
+
+            summarizeBtn.disabled = true;
+            summaryOutput.textContent = "সারাংশ তৈরি করা হচ্ছে... অনুগ্রহ করে অপেক্ষা করুন। ⏳";
+            showMessage("সারাংশ তৈরি হচ্ছে...", 'info');
+            copyBtn.disabled = true;
+            downloadPdfBtn.disabled = true;
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
+            
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contents: [{ role: "user", parts: [{ text: prompt }] }],
+                        config: {
+                            // নিরাপত্তা সেটিংস এখানে যোগ করা যেতে পারে
+                        }
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API কল ব্যর্থ হয়েছে: ${response.status} - ${errorData.error.message}`);
+                }
+
+                const data = await response.json();
+                
+                let summary = "সারাংশ পাওয়া যায়নি।";
+                
+                if (data.candidates && data.candidates.length > 0 && data.candidates[0].content.parts.length > 0) {
+                    summary = data.candidates[0].content.parts[0].text;
+                } else if (data.promptFeedback && data.promptFeedback.blockReason) {
+                     summary = `আপনার অনুরোধটি ব্লক করা হয়েছে: ${data.promptFeedback.blockReason}।`;
+                }
+
+                summaryOutput.textContent = summary;
+                
+                if (summary.length > 50 && !summary.includes("ব্লক করা হয়েছে")) {
+                    copyBtn.disabled = false;
+                    downloadPdfBtn.disabled = false;
+                    showMessage("সারাংশ সফলভাবে তৈরি হয়েছে।", 'success');
+                } else {
+                    showMessage("সারাংশ তৈরি করতে সমস্যা হয়েছে বা ফলাফল খুব সংক্ষিপ্ত।", 'warning');
+                }
+
+            } catch (error) {
+                console.error("Gemini API error:", error);
+                summaryOutput.textContent = "সারাংশ তৈরি করার সময় একটি ত্রুটি হয়েছে। বিস্তারিত কনসোলে দেখুন। সম্ভবত API কী ভুল বা নেটওয়ার্ক সমস্যা।";
+                showMessage(`ত্রুটি: ${error.message}`, 'error');
+            } finally {
+                summarizeBtn.disabled = false;
+            }
+        }
+
+        // সারাংশ কপি করুন
+        function copySummary() {
+            const summaryText = summaryOutput.textContent;
+            navigator.clipboard.writeText(summaryText).then(() => {
+                showMessage("সারাংশ কপি করা হয়েছে!", 'success');
+            }).catch(err => {
+                console.error('কপি করতে ব্যর্থ:', err);
+                showMessage("কপি করতে সমস্যা হয়েছে।", 'error');
+            });
+        }
+        
+        // পিডিএফ ডাউনলোড (jsPDF লাইব্রেরি দরকার, তবে সরলীকরণের জন্য শুধু টেক্সট ডাউনলোড দেওয়া হলো)
+        function downloadPdf() {
+            const summaryText = summaryOutput.textContent;
+            
+            // একটি সরল টেক্সট ফাইল তৈরি করে ডাউনলোড করা
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(summaryText));
+            element.setAttribute('download', 'saraonsho.txt'); // PDF এর বদলে .txt
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+            
+            showMessage("সারাংশ টেক্সট ফাইল (.txt) হিসাবে ডাউনলোড করা হয়েছে।", 'success');
+
+            // Note: সত্যিকারের PDF ডাউনলোডের জন্য jsPDF বা অনুরূপ লাইব্রেরি ব্যবহার করতে হবে।
+        }
+
+        /**
+         * একটি স্ট্যাটাস মেসেজ প্রদর্শন করে।
+         * @param {string} message - প্রদর্শন করার টেক্সট।
+         * @param {'info'|'success'|'warning'|'error'} type - মেসেজের ধরন।
+         */
+        function showMessage(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.style.backgroundColor = '';
+            statusMessage.style.color = '#333';
+            
+            switch (type) {
+                case 'info':
+                    statusMessage.style.backgroundColor = '#d1ecf1';
+                    statusMessage.style.color = '#0c5460';
+                    break;
+                case 'success':
+                    statusMessage.style.backgroundColor = '#d4edda';
+                    statusMessage.style.color = '#155724';
+                    break;
+                case 'warning':
+                    statusMessage.style.backgroundColor = '#fff3cd';
+                    statusMessage.style.color = '#856404';
+                    break;
+                case 'error':
+                    statusMessage.style.backgroundColor = '#f8d7da';
+                    statusMessage.style.color = '#721c24';
+                    break;
+            }
+            
+            statusMessage.style.display = 'block';
+            
+            // ৪ সেকেন্ড পর মেসেজটি লুকিয়ে ফেলা
+            setTimeout(() => {
+                statusMessage.style.display = 'none';
+            }, 4000);
+        }
+
+        // --- ইভেন্ট লিসেনার্স ---
+        summarizeBtn.addEventListener('click', () => {
+            getSummary(textInput.value);
+        });
+
+        copyBtn.addEventListener('click', copySummary);
+        downloadPdfBtn.addEventListener('click', downloadPdf);
+        toggleDarkLightBtn.addEventListener('click', toggleDarkMode);
+        
+        // এন্টার চাপলে সারাংশ করার সুবিধা (টেক্সট এরিয়াতে)
+        textInput.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                getSummary(textInput.value);
+            }
+        });
+
+    </script>
+
+</body>
+</html>
