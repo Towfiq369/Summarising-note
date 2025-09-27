@@ -184,7 +184,8 @@
 
     <script>
         // JavaScript
-        const API_KEY = "YOUR_GEMINI_API_KEY_HERE"; // !!! এখানে আপনার API কী দিন !!!
+        // *** আপনার API কীটি এখানে প্রতিস্থাপন করুন ***
+        const API_KEY = "YOUR_GEMINI_API_KEY_HERE"; 
         const MODEL_NAME = "gemini-2.5-flash"; // জেমিনি মডেল
 
         const textInput = document.getElementById('textInput');
@@ -198,20 +199,14 @@
 
         // --- ইউটিলিটি ফাংশন ---
         
-        /**
-         * একটি স্ট্যাটাস মেসেজ প্রদর্শন করে।
-         * @param {string} message - প্রদর্শন করার টেক্সট।
-         * @param {'info'|'success'|'warning'|'error'} type - মেসেজের ধরন।
-         */
         function showMessage(message, type) {
             statusMessage.textContent = message;
             statusMessage.className = `status-message status-${type}`;
             statusMessage.style.display = 'block';
             
-            // ৪ সেকেন্ড পর মেসেজটি লুকিয়ে ফেলা
             setTimeout(() => {
                 statusMessage.style.display = 'none';
-            }, 4000);
+            }, 5000); // মেসেজ প্রদর্শনের সময় ৫ সেকেন্ড করা হলো
         }
 
         // --- মোড ফাংশন ---
@@ -229,7 +224,7 @@
         initializeMode();
 
 
-        // --- মূল সারাংশ ফাংশন ---
+        // --- মূল সারাংশ ফাংশন (সংশোধিত) ---
 
         async function getSummary(text) {
             if (!text.trim()) {
@@ -251,7 +246,7 @@
             copyBtn.disabled = true;
             downloadPdfBtn.disabled = true;
 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${gemini 2.5 flash}:generateContent?key=${AIzaSyDI7KMTlTAB71rXs6jl3KizBZ5mDotjYQ8}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${gemini-2.5-flash}:generateContent?key=${AIzaSyDI7KMTlTAB71rXs6jl3KizBZ5mDotjYQ8}`;
             
             try {
                 const response = await fetch(apiUrl, {
@@ -259,13 +254,10 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    // *** সমাধান: এখানে 'config' এর পরিবর্তে 'generationConfig' ব্যবহার করা হলো ***
+                    // *** চূড়ান্ত সমাধান: 'generationConfig' সম্পূর্ণরূপে বাদ দেওয়া হয়েছে। 
+                    // এটি ত্রুটি সৃষ্টিকারী যেকোনো কনফিগারেশন প্যারামিটার এড়িয়ে যায়। ***
                     body: JSON.stringify({
                         contents: [{ role: "user", parts: [{ text: prompt }] }],
-                        generationConfig: { 
-                            temperature: 0.5,
-                            // maxOutputTokens: 2048 // ডিফল্ট টোকেন যথেষ্ট, তবুও প্রয়োজন হলে যোগ করা যেতে পারে
-                        }
                     }),
                 });
 
@@ -273,11 +265,8 @@
                     const errorData = await response.json();
                     let errorMessage = errorData.error ? errorData.error.message : response.statusText;
                     
-                    // ৪০০ ত্রুটি স্পষ্টভাবে দেখানো:
-                    if (response.status === 400 && errorMessage.includes('Invalid JSON payload')) {
-                         errorMessage = "API কী সম্ভবত ভুল বা সার্ভারের কনফিগারেশন ত্রুটি।";
-                    } else if (response.status === 400 && errorMessage.includes('API key not valid')) {
-                         errorMessage = "API কীটি বৈধ নয়।";
+                    if (response.status === 400 && errorMessage.includes('API key not valid')) {
+                         errorMessage = "API কীটি বৈধ নয় বা ভুল।";
                     }
                     
                     throw new Error(`API কল ব্যর্থ হয়েছে (${response.status}): ${errorMessage}`);
@@ -305,7 +294,7 @@
 
             } catch (error) {
                 console.error("Gemini API error:", error);
-                summaryOutput.textContent = "সারাংশ তৈরি করার সময় একটি ত্রুটি হয়েছে। বিস্তারিত কনসোলে দেখুন। ত্রুটির কারণ: " + error.message;
+                summaryOutput.textContent = "সারাংশ তৈরি করার সময় একটি গুরুতর ত্রুটি হয়েছে। সমস্যা সমাধানের জন্য, অনুগ্রহ করে নিশ্চিত করুন আপনার API কী সঠিক এবং এটি কোনো প্রক্সি সার্ভার ছাড়াই ব্রাউজারে কাজ করার কথা নয় (CORS সমস্যার কারণে)। ত্রুটি: " + error.message;
                 showMessage(`ত্রুটি: ${error.message}`, 'error');
             } finally {
                 summarizeBtn.disabled = false;
