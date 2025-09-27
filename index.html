@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SUMMARISING NOTE</title>
+    <title>নোট সারাংশ টুল (Gemini)</title>
     <style>
         /* CSS */
         :root {
@@ -146,17 +146,21 @@
             margin-top: 10px;
             padding: 10px;
             border-radius: 4px;
-            background-color: #ffc107;
-            color: #333;
             text-align: center;
             display: none;
+            font-weight: bold;
         }
+        
+        .status-error { background-color: #f8d7da; color: #721c24; }
+        .status-success { background-color: #d4edda; color: #155724; }
+        .status-info { background-color: #d1ecf1; color: #0c5460; }
+        .status-warning { background-color: #fff3cd; color: #856404; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Summarising note with TOWFIQ</h1>
+        <h1>Summarising note with TOWFIQ (নোট সারাংশ টুল)</h1>
 
         <p>এখানে আপনার নোট, টেক্সট, বা ইউটিউব/আর্টিকেলের লিঙ্ক লিখুন:</p>
         <textarea id="textInput" placeholder="ইনপুট টেক্সট বা লিঙ্ক..."></textarea>
@@ -171,16 +175,16 @@
         <div id="statusMessage" class="status-message"></div>
 
         <p>সারাংশ এখানে প্রদর্শিত হবে:</p>
-        <div id="summaryOutput"></div>
+        <div id="summaryOutput">সারাংশ তৈরির জন্য উপরে টেক্সট বা লিঙ্ক দিন এবং "Summarize" বাটনে ক্লিক করুন।</div>
         
-        <p style="margin-top: 20px;">সংরক্ষিত নোট: (এই সংস্করণে সংরক্ষণ কার্যকারিতা যোগ করা হয়নি, তবে আপনি চাইলে লোকাল স্টোরেজ ব্যবহার করে এটি যোগ করতে পারেন)</p>
+        <p style="margin-top: 20px;">সংরক্ষিত নোট: (এই সংস্করণে সংরক্ষণ কার্যকারিতা যোগ করা হয়নি)</p>
         <div style="min-height: 50px; padding: 10px; border: 1px dashed #ccc; border-radius: 4px;"></div>
 
     </div>
 
     <script>
         // JavaScript
-        const API_KEY = "AIzaSyDI7KMTlTAB71rXs6jl3KizBZ5mDotjYQ8"; // !!! এখানে আপনার API কী দিন !!!
+        const API_KEY = "YOUR_GEMINI_API_KEY_HERE"; // !!! এখানে আপনার API কী দিন !!!
         const MODEL_NAME = "gemini-2.5-flash"; // জেমিনি মডেল
 
         const textInput = document.getElementById('textInput');
@@ -192,16 +196,31 @@
         const statusMessage = document.getElementById('statusMessage');
         const body = document.body;
 
-        // --- ফাংশন ---
+        // --- ইউটিলিটি ফাংশন ---
+        
+        /**
+         * একটি স্ট্যাটাস মেসেজ প্রদর্শন করে।
+         * @param {string} message - প্রদর্শন করার টেক্সট।
+         * @param {'info'|'success'|'warning'|'error'} type - মেসেজের ধরন।
+         */
+        function showMessage(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message status-${type}`;
+            statusMessage.style.display = 'block';
+            
+            // ৪ সেকেন্ড পর মেসেজটি লুকিয়ে ফেলা
+            setTimeout(() => {
+                statusMessage.style.display = 'none';
+            }, 4000);
+        }
 
-        // ডার্ক/লাইট মোড টগল
+        // --- মোড ফাংশন ---
         function toggleDarkMode() {
             body.classList.toggle('dark-mode');
             const isDarkMode = body.classList.contains('dark-mode');
             localStorage.setItem('darkMode', isDarkMode ? 'enabled' : 'disabled');
         }
 
-        // শুরুতে মোড সেট করুন
         function initializeMode() {
             if (localStorage.getItem('darkMode') === 'enabled') {
                 body.classList.add('dark-mode');
@@ -210,10 +229,8 @@
         initializeMode();
 
 
-        /**
-         * সারাংশ করার জন্য জেমিনি এপিআই কল করে।
-         * @param {string} text - ব্যবহারকারীর ইনপুট টেক্সট বা লিঙ্ক।
-         */
+        // --- মূল সারাংশ ফাংশন ---
+
         async function getSummary(text) {
             if (!text.trim()) {
                 showMessage("অনুগ্রহ করে কিছু টেক্সট বা লিঙ্ক প্রদান করুন।", 'error');
@@ -223,12 +240,10 @@
                 showMessage("API কী সেট করা হয়নি। অনুগ্রহ করে কোডে আপনার Gemini API কী দিন।", 'error');
                 return;
             }
-
-            // যদি এটি একটি লিঙ্ক হয়, তবে সরাসরি টেক্সট হিসাবে ট্রিট করুন (বাস্তবে লিঙ্ক হ্যান্ডলিং এর জন্য ব্যাকএন্ড দরকার)
-            let prompt = `নিম্নলিখিত টেক্সট/আর্টিকেল/ভিডিওর সারাংশ বাংলায় তৈরি করুন। এটি যেকোনো ভাষা বা লিঙ্ক হতে পারে। এটি সম্পূর্ণরূপে বাংলায় সংক্ষিপ্ত করুন: ${text}`;
             
-            // ইউটিউব/আর্টিকেল লিঙ্ক:
-            // দ্রষ্টব্য: জেমিনি সরাসরি একটি ইউটিউব লিঙ্ক থেকে সারাংশ করতে পারে না, তবে এটি ওয়েব পেজ/আর্টিকেল লিঙ্ক বা ভিডিওর ট্রান্সক্রিপ্ট টেক্সট পেলে সারাংশ করতে পারে। যেহেতু আপনি একটি সিঙ্গেল-ফাইল টুল চেয়েছেন, লিঙ্ক থেকে কন্টেন্ট আনার ফাংশনটি ব্রাউজারের CORS নীতিমালার কারণে কাজ করবে না। তাই, আমরা প্রম্পটে লিঙ্কটি অন্তর্ভুক্ত করে জেমিনিকে তার ওয়েব-সার্চ ক্ষমতা ব্যবহার করে উত্তর দিতে বলছি।
+            // প্রম্পট: ব্যবহারকারী যে ভাষাতেই দিক, সারাংশ সবসময় বাংলায় চাইছেন
+            let prompt = `নিম্নলিখিত টেক্সট/আর্টিকেল/ভিডিওর সারাংশ বাংলায় তৈরি করুন। এটি যেকোনো ভাষা বা লিঙ্ক হতে পারে। এটি যেন সম্পূর্ণরূপে এবং সংক্ষেপে বাংলায় হয়: ${text}`;
+            
 
             summarizeBtn.disabled = true;
             summaryOutput.textContent = "সারাংশ তৈরি করা হচ্ছে... অনুগ্রহ করে অপেক্ষা করুন। ⏳";
@@ -236,7 +251,7 @@
             copyBtn.disabled = true;
             downloadPdfBtn.disabled = true;
 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${gemini 2.5 flash}:generateContent?key=${AIzaSyDI7KMTlTAB71rXs6jl3KizBZ5mDotjYQ8}`;
             
             try {
                 const response = await fetch(apiUrl, {
@@ -244,17 +259,28 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
+                    // *** সমাধান: এখানে 'config' এর পরিবর্তে 'generationConfig' ব্যবহার করা হলো ***
                     body: JSON.stringify({
                         contents: [{ role: "user", parts: [{ text: prompt }] }],
-                        config: {
-                            // নিরাপত্তা সেটিংস এখানে যোগ করা যেতে পারে
+                        generationConfig: { 
+                            temperature: 0.5,
+                            // maxOutputTokens: 2048 // ডিফল্ট টোকেন যথেষ্ট, তবুও প্রয়োজন হলে যোগ করা যেতে পারে
                         }
                     }),
                 });
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(`API কল ব্যর্থ হয়েছে: ${response.status} - ${errorData.error.message}`);
+                    let errorMessage = errorData.error ? errorData.error.message : response.statusText;
+                    
+                    // ৪০০ ত্রুটি স্পষ্টভাবে দেখানো:
+                    if (response.status === 400 && errorMessage.includes('Invalid JSON payload')) {
+                         errorMessage = "API কী সম্ভবত ভুল বা সার্ভারের কনফিগারেশন ত্রুটি।";
+                    } else if (response.status === 400 && errorMessage.includes('API key not valid')) {
+                         errorMessage = "API কীটি বৈধ নয়।";
+                    }
+                    
+                    throw new Error(`API কল ব্যর্থ হয়েছে (${response.status}): ${errorMessage}`);
                 }
 
                 const data = await response.json();
@@ -269,7 +295,7 @@
 
                 summaryOutput.textContent = summary;
                 
-                if (summary.length > 50 && !summary.includes("ব্লক করা হয়েছে")) {
+                if (summary.length > 50 && !summary.includes("ব্লক করা হয়েছে") && !summary.includes("পাওয়া যায়নি")) {
                     copyBtn.disabled = false;
                     downloadPdfBtn.disabled = false;
                     showMessage("সারাংশ সফলভাবে তৈরি হয়েছে।", 'success');
@@ -279,14 +305,15 @@
 
             } catch (error) {
                 console.error("Gemini API error:", error);
-                summaryOutput.textContent = "সারাংশ তৈরি করার সময় একটি ত্রুটি হয়েছে। বিস্তারিত কনসোলে দেখুন। সম্ভবত API কী ভুল বা নেটওয়ার্ক সমস্যা।";
+                summaryOutput.textContent = "সারাংশ তৈরি করার সময় একটি ত্রুটি হয়েছে। বিস্তারিত কনসোলে দেখুন। ত্রুটির কারণ: " + error.message;
                 showMessage(`ত্রুটি: ${error.message}`, 'error');
             } finally {
                 summarizeBtn.disabled = false;
             }
         }
 
-        // সারাংশ কপি করুন
+        // --- অন্যান্য ফাংশন ---
+        
         function copySummary() {
             const summaryText = summaryOutput.textContent;
             navigator.clipboard.writeText(summaryText).then(() => {
@@ -297,59 +324,19 @@
             });
         }
         
-        // পিডিএফ ডাউনলোড (jsPDF লাইব্রেরি দরকার, তবে সরলীকরণের জন্য শুধু টেক্সট ডাউনলোড দেওয়া হলো)
         function downloadPdf() {
             const summaryText = summaryOutput.textContent;
             
-            // একটি সরল টেক্সট ফাইল তৈরি করে ডাউনলোড করা
+            // সরল টেক্সট ফাইল তৈরি ও ডাউনলোড
             const element = document.createElement('a');
             element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(summaryText));
-            element.setAttribute('download', 'saraonsho.txt'); // PDF এর বদলে .txt
+            element.setAttribute('download', 'saraonsho.txt');
             element.style.display = 'none';
             document.body.appendChild(element);
             element.click();
             document.body.removeChild(element);
             
             showMessage("সারাংশ টেক্সট ফাইল (.txt) হিসাবে ডাউনলোড করা হয়েছে।", 'success');
-
-            // Note: সত্যিকারের PDF ডাউনলোডের জন্য jsPDF বা অনুরূপ লাইব্রেরি ব্যবহার করতে হবে।
-        }
-
-        /**
-         * একটি স্ট্যাটাস মেসেজ প্রদর্শন করে।
-         * @param {string} message - প্রদর্শন করার টেক্সট।
-         * @param {'info'|'success'|'warning'|'error'} type - মেসেজের ধরন।
-         */
-        function showMessage(message, type) {
-            statusMessage.textContent = message;
-            statusMessage.style.backgroundColor = '';
-            statusMessage.style.color = '#333';
-            
-            switch (type) {
-                case 'info':
-                    statusMessage.style.backgroundColor = '#d1ecf1';
-                    statusMessage.style.color = '#0c5460';
-                    break;
-                case 'success':
-                    statusMessage.style.backgroundColor = '#d4edda';
-                    statusMessage.style.color = '#155724';
-                    break;
-                case 'warning':
-                    statusMessage.style.backgroundColor = '#fff3cd';
-                    statusMessage.style.color = '#856404';
-                    break;
-                case 'error':
-                    statusMessage.style.backgroundColor = '#f8d7da';
-                    statusMessage.style.color = '#721c24';
-                    break;
-            }
-            
-            statusMessage.style.display = 'block';
-            
-            // ৪ সেকেন্ড পর মেসেজটি লুকিয়ে ফেলা
-            setTimeout(() => {
-                statusMessage.style.display = 'none';
-            }, 4000);
         }
 
         // --- ইভেন্ট লিসেনার্স ---
@@ -361,7 +348,6 @@
         downloadPdfBtn.addEventListener('click', downloadPdf);
         toggleDarkLightBtn.addEventListener('click', toggleDarkMode);
         
-        // এন্টার চাপলে সারাংশ করার সুবিধা (টেক্সট এরিয়াতে)
         textInput.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'Enter') {
                 getSummary(textInput.value);
